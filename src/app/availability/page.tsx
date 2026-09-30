@@ -30,9 +30,14 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ava
     <div className="space-y-6">
       {/* Fey header: close on the left, section tabs on the right. */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <Link href="/" aria-label="Close and go back home" className="grid size-8 shrink-0 place-items-center rounded-full bg-panel text-muted transition-colors hover:bg-panel-strong hover:text-fg">
-            <X size={14} />
+        {/* Fey's close sits in the left gutter, just above the title line; inline when there's no gutter. */}
+        <div className="relative flex min-w-0 items-start gap-3">
+          <Link
+            href="/"
+            aria-label="Close and go back home"
+            className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-panel text-muted transition-colors hover:bg-panel-strong hover:text-fg min-[1260px]:absolute min-[1260px]:-top-2.5 min-[1260px]:-left-[59px] min-[1260px]:mt-0"
+          >
+            <X size={12} strokeWidth={2.25} />
           </Link>
           <div className="min-w-0">
             <h1 className="text-[20px] font-semibold tracking-[-0.02em]">Availability</h1>
