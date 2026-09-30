@@ -93,7 +93,7 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
                   } else if (e.key === "Enter") go(results[cursor]);
                 }}
                 placeholder="Search players, teams, pages…"
-                className="h-13 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
+                className="h-13 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted focus-visible:outline-none"
                 aria-controls="search-results"
               />
               <kbd className="rounded bg-panel-strong px-1.5 py-0.5 text-[11px] text-muted">esc</kbd>

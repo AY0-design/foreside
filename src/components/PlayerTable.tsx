@@ -85,7 +85,7 @@ export function PlayerTable({ players, initialView }: { players: PlayerSummary[]
             { value: "budget", label: "Budget" },
           ]}
         />
-        <label className="flex h-8 w-full items-center gap-2 rounded-full bg-panel px-3 sm:w-64">
+        <label className="flex h-8 w-full items-center gap-2 rounded-full bg-panel px-3 transition-colors focus-within:bg-panel-strong sm:w-64">
           <Search size={14} className="text-muted" aria-hidden />
           <span className="sr-only">Filter players</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter by name or club" className="h-full flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />

@@ -40,7 +40,7 @@ export function ReplaceDrawer({ player, ids, all, byId, bank, horizon, onClose, 
           <p className="text-[13px] text-muted">
             {player.teamShort} · {player.position} · {price(player.price)} · {pts(horizonScore(player, horizon))} xPts {horizon === 1 ? "this GW" : "next 5"} · budget {price(bank + player.price)}
           </p>
-          <label className="flex h-9 items-center gap-2 rounded-full bg-panel pr-1.5 pl-3">
+          <label className="flex h-9 items-center gap-2 rounded-full bg-panel pr-1.5 pl-3 transition-colors focus-within:bg-panel-strong">
             <Search size={14} className="text-muted" aria-hidden />
             <span className="sr-only">Search replacements</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name or club" className="h-full flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
