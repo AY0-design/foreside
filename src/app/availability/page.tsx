@@ -27,7 +27,8 @@ export default async function AvailabilityPage({ searchParams }: PageProps<"/ava
   const rows = flagged.filter((p) => p.status === tab.status).sort((a, b) => b.ownership - a.ownership);
 
   return (
-    <div className="space-y-6">
+    // No top bar on this view (see ScrollHeader), so it carries its own top spacing.
+    <div className="space-y-6 pt-5">
       {/* Fey header: close on the left, section tabs on the right. */}
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
         {/* Fey's close sits in the left gutter, just above the title line; inline when there's no gutter. */}

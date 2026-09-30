@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { cx } from "@/lib/format";
 
 const subscribe = (cb: () => void) => {
@@ -9,6 +10,9 @@ const subscribe = (cb: () => void) => {
 };
 const isScrolled = () => window.scrollY > 4;
 const serverScrolled = () => false;
+
+/** Full-screen views that bring their own close button and don't show the bar. */
+const BARLESS = ["/availability"];
 
 /**
  * Stacked blur layers, each masked to its own band: the blur is strongest at the top edge and
@@ -24,6 +28,8 @@ const LAYERS = [
 
 export function ScrollHeader({ children }: { children: ReactNode }) {
   const scrolled = useSyncExternalStore(subscribe, isScrolled, serverScrolled);
+  const pathname = usePathname();
+  if (BARLESS.includes(pathname)) return null;
   return (
     <header className="sticky top-0 z-30">
       <div aria-hidden className={cx("pointer-events-none absolute inset-x-0 top-0 h-24 transition-opacity duration-300", scrolled ? "opacity-100" : "opacity-0")}>
