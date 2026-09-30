@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
+/* Colour: Family (dark palette only). Structure: Fey. See docs/design-system.md. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #000000;
+  --panel: #1c1c1e;
+  --panel-strong: #2c2c2e;
+  --line: #2a2a2c;
+  --fg: #ffffff;
+  --muted: #8e8e93;
+  --faint: #48484a;
+  --inverse-bg: #ffffff;
+  --inverse-fg: #000000;
+
+  --blue: #0a84ff;
+  --pink: #ff4fa3;
+  --green: #30d158;
+  --orange: #ff9f0a;
+  --red: #ff453a;
+
+  --blue-soft: rgb(10 132 255 / 0.12);
+  --pink-soft: rgb(255 79 163 / 0.13);
+  --green-soft: rgb(48 209 88 / 0.16);
+  --orange-soft: rgb(255 159 10 / 0.15);
+  --red-soft: rgb(255 69 58 / 0.16);
+
+  --fdr-1: #1fb46a;
+  --fdr-2: rgb(48 209 88 / 0.35);
+  --fdr-3: #2c2c2e;
+  --fdr-4: rgb(255 69 58 / 0.35);
+  --fdr-5: #eb4d3d;
+
+  --pop-shadow: 0 16px 48px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
+  color-scheme: dark;
 }
 
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-strong: var(--panel-strong);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-inverse: var(--inverse-bg);
+  --color-inverse-fg: var(--inverse-fg);
+  --color-blue: var(--blue);
+  --color-pink: var(--pink);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --color-blue-soft: var(--blue-soft);
+  --color-pink-soft: var(--pink-soft);
+  --color-green-soft: var(--green-soft);
+  --color-orange-soft: var(--orange-soft);
+  --color-red-soft: var(--red-soft);
+  --color-fdr-1: var(--fdr-1);
+  --color-fdr-2: var(--fdr-2);
+  --color-fdr-3: var(--fdr-3);
+  --color-fdr-4: var(--fdr-4);
+  --color-fdr-5: var(--fdr-5);
+  --shadow-pop: var(--pop-shadow);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--bg);
+  /* Keep in-page jumps (#weakness, #squad) clear of the pinned header. */
+  scroll-padding-top: 72px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Fey's "daily recap" glow, in Family blue → pink. */
+.brief-glow {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(10 132 255 / 0.14), transparent 60%),
+    radial-gradient(90% 90% at 100% 0%, rgb(255 79 163 / 0.12), transparent 55%),
+    var(--panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
