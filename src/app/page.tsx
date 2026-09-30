@@ -48,8 +48,8 @@ export default function Home() {
       return n < 2;
     })
     .slice(0, 4);
-  const alerts = availabilityAlerts(all, 4);
-  const top = topProjected(all, 6);
+  const alerts = availabilityAlerts(all, 3);
+  const top = topProjected(all, 5);
 
   return (
     <div className="space-y-6">
@@ -59,7 +59,7 @@ export default function Home() {
 
       <div className="grid gap-5 lg:grid-cols-[5fr_7fr]">
         {/* Left: the round at a glance */}
-        <Panel className="lg:self-start">
+        <Panel>
           <p className="text-[12px] text-muted">{model.deadline ? `Deadline ${DATE.format(new Date(model.deadline))}` : `Gameweek ${gw}`}</p>
           <div className="mt-1">
             <Headline lead={`Gameweek ${gw} looks`} emphasis={sentiment.word} tone={sentiment.word === "attacking" ? "green" : sentiment.word === "tight" ? "red" : "fg"} />
@@ -98,7 +98,7 @@ export default function Home() {
         </Panel>
 
         {/* Right: brief, intelligence, feed */}
-        <div className="order-first min-w-0 space-y-5 lg:order-none">
+        <div className="order-first flex min-w-0 flex-col gap-5 lg:order-none">
           <Panel className="brief-glow">
             <div className="mb-3 flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded bg-panel-strong/80 px-1.5 py-0.5 text-[12px] text-muted">
@@ -136,7 +136,7 @@ export default function Home() {
             </ul>
           </Panel>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid flex-1 gap-5 md:grid-cols-2">
             <Panel>
               <PanelHeader title="Top projected" actions={<PillLink href="/players" size="sm" tone="ghost">All</PillLink>} />
               <ul>
@@ -150,7 +150,7 @@ export default function Home() {
             </Panel>
 
             <Panel>
-              <PanelHeader title="Availability" sub="Owned by 2%+" />
+              <PanelHeader title="Availability" sub="Owned by 2%+" actions={<PillLink href="/availability" size="sm" tone="ghost">All</PillLink>} />
               {alerts.length === 0 ? (
                 <p className="text-[13px] text-muted">No flagged players.</p>
               ) : (

@@ -26,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   const { currentGw, deadline } = model;
   const teamById = new Map(model.teams.map((t) => [t.id, t]));
   const search: SearchItem[] = [
+    { kind: "page", label: "Availability", sub: "Page", href: "/availability", terms: "availability injuries injured doubtful suspended" },
     ...model.teams.map((t) => ({ kind: "team" as const, label: t.name, sub: "Team", href: `/teams/${t.id}`, terms: `${t.name} ${t.short}`.toLowerCase() })),
     ...model.players
       .filter((p) => p.history.some((h) => h.minutes > 0) || p.pStart > 0.2)
