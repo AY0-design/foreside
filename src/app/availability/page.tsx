@@ -1,49 +1,61 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { X } from "lucide-react";
 import { getModel } from "@/lib/data/source";
 import { summarize } from "@/lib/data/summaries";
 import type { PlayerSummary, Status } from "@/lib/types";
 import { PlayerIdentity } from "@/components/PlayerBits";
-import { EmptyState, FixtureChip, GroupRow, PageBar, ROW, StatStrip, TD, TH } from "@/components/ui/primitives";
+import { EmptyState, FixtureChip, ROW, TabLinks, TD, TH } from "@/components/ui/primitives";
 import { cx, own, price } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Availability" };
 
-const GROUPS: { status: Exclude<Status, "available">; label: string }[] = [
-  { status: "doubtful", label: "Doubtful" },
-  { status: "injured", label: "Out" },
-  { status: "suspended", label: "Suspended" },
+type Flag = Exclude<Status, "available">;
+
+const TABS: { status: Flag; label: string; empty: string }[] = [
+  { status: "doubtful", label: "Doubtful", empty: "No doubts this gameweek." },
+  { status: "injured", label: "Out", empty: "Nobody is ruled out." },
+  { status: "suspended", label: "Suspended", empty: "Nobody is suspended." },
 ];
 
-export default function AvailabilityPage() {
+export default async function AvailabilityPage({ searchParams }: PageProps<"/availability">) {
+  const { status } = await searchParams;
+  const tab = TABS.find((t) => t.status === status) ?? TABS[0];
   const model = getModel();
-  const flagged = summarize(model)
-    .filter((p) => p.status !== "available")
-    .sort((a, b) => b.ownership - a.ownership);
-  const byStatus = (s: Status) => flagged.filter((p) => p.status === s);
-  const ownedWidely = flagged.filter((p) => p.ownership >= 10).length;
+  const flagged = summarize(model).filter((p) => p.status !== "available");
+  const count = (s: Flag) => flagged.filter((p) => p.status === s).length;
+  const rows = flagged.filter((p) => p.status === tab.status).sort((a, b) => b.ownership - a.ownership);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/" aria-label="Back to home" className="grid size-8 shrink-0 place-items-center rounded-full text-muted hover:bg-panel hover:text-fg">
-          <ArrowLeft size={16} />
-        </Link>
-        <PageBar title="Availability" sub={`Every flagged player going into Gameweek ${model.currentGw}, most owned first`} />
+      {/* Fey header: close on the left, section tabs on the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link href="/" aria-label="Close and go back home" className="grid size-8 shrink-0 place-items-center rounded-full bg-panel text-muted transition-colors hover:bg-panel-strong hover:text-fg">
+            <X size={14} />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">Availability</h1>
+            <p className="mt-0.5 text-[13px] text-muted">Gameweek {model.currentGw} · most owned first</p>
+          </div>
+        </div>
+        <TabLinks
+          active={`/availability?status=${tab.status}`}
+          items={TABS.map((t) => ({
+            href: `/availability?status=${t.status}`,
+            label: (
+              <>
+                {t.label} <span className="text-faint tnum">{count(t.status)}</span>
+              </>
+            ),
+          }))}
+        />
       </div>
 
-      <StatStrip
-        items={[
-          { label: "Doubtful", value: byStatus("doubtful").length },
-          { label: "Out", value: byStatus("injured").length },
-          { label: "Suspended", value: byStatus("suspended").length },
-          { label: "Owned by 10%+", value: ownedWidely },
-        ]}
-      />
-
-      {flagged.length === 0 ? (
-        <EmptyState title="Nobody is flagged" body="Every player is fit for this gameweek." />
+      {rows.length === 0 ? (
+        <div className="rounded-2xl bg-panel">
+          <EmptyState title={tab.empty} body="Check back after the next team news." />
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-panel px-2 pb-2 sm:px-3">
           <table className="w-full min-w-[820px] text-left">
@@ -57,14 +69,9 @@ export default function AvailabilityPage() {
               </tr>
             </thead>
             <tbody>
-              {GROUPS.map(({ status, label }) => {
-                const group = byStatus(status);
-                if (!group.length) return null;
-                return [
-                  <GroupRow key={`${status}-h`} label={<span>{label} <span className="font-normal text-muted">{group.length}</span></span>} span={5} />,
-                  ...group.map((p) => <AvailabilityRow key={p.id} p={p} />),
-                ];
-              })}
+              {rows.map((p) => (
+                <AvailabilityRow key={p.id} p={p} />
+              ))}
             </tbody>
           </table>
         </div>

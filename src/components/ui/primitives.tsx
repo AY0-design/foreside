@@ -168,7 +168,7 @@ export function PillLink({ tone = "primary", size = "md", className, href, child
 }
 
 /** Fey header tab as a link (e.g. "Holdings · Watchlist"). */
-export function TabLinks({ items, active }: { items: { href: string; label: string; icon?: LucideIcon }[]; active: string }) {
+export function TabLinks({ items, active }: { items: { href: string; label: ReactNode; icon?: LucideIcon }[]; active: string }) {
   return (
     <nav className="no-scrollbar flex gap-1 overflow-x-auto">
       {items.map(({ href, label, icon: Icon }) => (
