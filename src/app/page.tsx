@@ -110,7 +110,7 @@ export default function Home() {
           </Panel>
 
           <Panel>
-            <PanelHeader title="Zone exploits" sub={`${exploits.length} strong weakness × footprint matches this round`} actions={<PillLink href="/matchups" size="sm" tone="secondary">All matchups</PillLink>} />
+            <PanelHeader title="Zone exploits" sub={`${exploits.length} strong weakness × footprint matches this round`} actions={<PillLink href="/matchups" size="sm" tone="ghost">All matchups</PillLink>} />
             <ul>
               {exploits.map((e) => {
                 const p = byId.get(e.playerId)!;

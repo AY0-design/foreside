@@ -149,7 +149,7 @@ export default async function PlayerPage({ params }: PageProps<"/players/[id]">)
           <PanelHeader
             title="Zone matchup"
             sub={`Where ${opponent.name} concede (pink) against where ${p.webName} and teammates shoot and create (blue). ${p.zoneSource === "measured" ? "From real shot locations." : "Estimated — little shot data for this player yet."}`}
-            actions={<PillLink href={`/teams/${opponent.id}`} size="sm" tone="secondary">{opponent.short} weaknesses</PillLink>}
+            actions={<PillLink href={`/teams/${opponent.id}`} size="sm" tone="ghost">{opponent.short} weaknesses</PillLink>}
           />
           <ZoneMap grid={opponent.vulnerability} league={model.leagueVulnerability} valueLabel={`${opponent.short} concede here`} attackingLabel={`${team.short} attacking`} focusPlayerId={p.id} players={teammates.map((t) => ({ id: t.id, name: t.webName, color: t.id === p.id ? "var(--blue)" : "var(--faint)", occupation: t.occupation }))} />
         </Panel>
