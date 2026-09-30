@@ -113,6 +113,7 @@ export default async function TeamPage({ params }: PageProps<"/teams/[id]">) {
               ariaLabel={`${team.name} expected goals for and against by match, then projected`}
               labels={labels}
               nowIndex={team.matches.length - 1}
+              decimals={2}
               series={[
                 { label: "xG for", tone: "blue", values: [...team.matches.map((m) => m.xg), ...upcoming.map((f) => f.xG)] },
                 { label: "xG against", tone: "pink", values: [...team.matches.map((m) => m.xga), ...upcoming.map((f) => f.xGA)] },

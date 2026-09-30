@@ -100,9 +100,10 @@ export default async function PlayerPage({ params }: PageProps<"/players/[id]">)
               ariaLabel={`${p.webName}: points by gameweek, then projected`}
               labels={labels}
               nowIndex={p.history.length ? p.history.length - 1 : undefined}
+              unit="pts"
               series={[
-                { label: `Points · ${stats.points} total`, tone: "blue", values: [...p.history.map((h) => h.points), ...proj.horizon.map(() => null)] },
-                { label: `Projected · ${pts(proj.horizonTotal)} next 5`, tone: "pink", values: [...p.history.map((h, i) => (i === p.history.length - 1 ? h.points : null)), ...proj.horizon.map((h) => h.xPts)] },
+                { label: `Points · ${stats.points} total`, name: "Points", tone: "blue", values: [...p.history.map((h) => h.points), ...proj.horizon.map(() => null)] },
+                { label: `Projected · ${pts(proj.horizonTotal)} next 5`, name: "Expected points", tone: "pink", projection: true, values: [...p.history.map((h, i) => (i === p.history.length - 1 ? h.points : null)), ...proj.horizon.map((h) => h.xPts)] },
               ]}
             />
           )}

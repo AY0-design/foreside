@@ -70,7 +70,11 @@ export default function Home() {
             ariaLabel="League goals per match: actual by gameweek, then projected for the next five"
             labels={labels}
             nowIndex={actual.length ? actual.length - 1 : undefined}
-            series={[{ label: `Goals per match · ${sentiment.goalsPerMatch.toFixed(2)} projected`, tone: "blue", values: [...actual, ...projected.map(() => null)] }, { label: "Projected", tone: "pink", values: [...actual.map((v, i) => (i === actual.length - 1 ? v : null)), ...projected] }]}
+            decimals={2}
+            series={[
+              { label: `Goals per match · ${sentiment.goalsPerMatch.toFixed(2)} projected`, name: "Goals per match", tone: "blue", values: [...actual, ...projected.map(() => null)] },
+              { label: "Projected", name: "Projected per match", tone: "pink", projection: true, values: [...actual.map((v, i) => (i === actual.length - 1 ? v : null)), ...projected] },
+            ]}
           />
 
           <div className="mt-7 border-t border-line pt-4">

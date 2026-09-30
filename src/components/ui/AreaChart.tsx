@@ -1,9 +1,17 @@
+"use client";
+
+import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { cx } from "@/lib/format";
 
 export interface Series {
+  /** Legend text. */
   label: string;
+  /** Short name for the tooltip and end tag; defaults to the legend text. */
+  name?: string;
   tone: "blue" | "pink" | "muted";
   values: (number | null)[];
+  /** A projection that only continues the actual line: hidden in the tooltip up to "Today". */
+  projection?: boolean;
 }
 
 const STROKE = { blue: "var(--blue)", pink: "var(--pink)", muted: "var(--faint)" } as const;
@@ -20,10 +28,11 @@ function path(points: { x: number; y: number }[]) {
 }
 
 /**
- * Fey-style line chart: thin strokes, no fill, a dashed "Today" marker, projections dashed.
- * Colours are Family's: blue for "us", pink for "them".
+ * Fey-style interactive line chart. Thin strokes, dashed projection after "Today", value axis on
+ * the left. Hover (or arrow keys) snaps a crosshair to the nearest
+ * gameweek and shows every series' actual value.
  */
-export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, className, nowLabel = "Today", showLegend = true }: {
+export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, className, nowLabel = "Today", showLegend = true, decimals = 1, unit = "" }: {
   series: Series[];
   labels: string[];
   nowIndex?: number;
@@ -32,21 +41,65 @@ export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, c
   ariaLabel: string;
   className?: string;
   showLegend?: boolean;
+  decimals?: number;
+  unit?: string;
 }) {
   const n = labels.length;
+  const plotRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<number | null>(null);
+  const tooltipId = useId();
   if (n < 2) return null;
+
   const W = 1000;
-  const top = 18;
+  const top = 12;
   const bottom = height - 6;
-  const max = Math.max(0.1, ...series.flatMap((s) => s.values.filter((v): v is number => v !== null))) * 1.1;
-  const x = (i: number) => (i / (n - 1)) * W;
-  const y = (v: number) => bottom - (v / max) * (bottom - top);
-  const gridLines = [0.25, 0.5, 0.75].map((f) => bottom - f * (bottom - top));
+  const all = series.flatMap((s) => s.values.filter((v): v is number => v !== null));
+  const max = Math.max(0.1, ...all) * 1.1;
+  const xPct = (i: number) => (i / (n - 1)) * 100;
+  const yPx = (v: number) => bottom - (v / max) * (bottom - top);
+  const ticks = [0.25, 0.5, 0.75, 1].map((f) => f * max);
+  const fmt = (v: number) => `${v.toFixed(decimals)}${unit ? ` ${unit}` : ""}`;
+
+  const indexFromClientX = (clientX: number) => {
+    const rect = plotRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return Math.round(ratio * (n - 1));
+  };
+  const onPointerMove = (e: PointerEvent) => setActive(indexFromClientX(e.clientX));
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      setActive((i) => {
+        const cur = i ?? nowIndex ?? n - 1;
+        return Math.min(n - 1, Math.max(0, cur + (e.key === "ArrowRight" ? 1 : -1)));
+      });
+    } else if (e.key === "Escape") setActive(null);
+  };
+
+  const rows =
+    active === null
+      ? []
+      : series
+          .filter((s) => !(s.projection && nowIndex !== undefined && active <= nowIndex))
+          .map((s) => ({ s, v: s.values[active] }))
+          .filter((r): r is { s: Series; v: number } => r.v !== null && r.v !== undefined);
+  const projected = active !== null && nowIndex !== undefined && active > nowIndex;
+  const flip = active !== null && xPct(active) > 62;
+
+  // Last point of each series, marked with a dot at rest.
+  const ends = series
+    .map((s) => {
+      let i = s.values.length - 1;
+      while (i >= 0 && s.values[i] === null) i--;
+      return i >= 0 ? { s, i, v: s.values[i] as number } : null;
+    })
+    .filter((e): e is { s: Series; i: number; v: number } => e !== null && e.i === n - 1);
 
   return (
     <figure className={cx("w-full", className)}>
       {showLegend && (
-        <figcaption className="mb-3 flex flex-wrap items-center gap-2 text-[12px] text-muted">
+        <figcaption className="mb-9 flex flex-wrap items-center gap-2 text-[12px] text-muted">
           {series.map((s) => (
             <span key={s.label} className="flex items-center gap-1.5 rounded bg-panel-strong px-1.5 py-0.5">
               <span aria-hidden className="h-2.5 w-0.5 rounded-full" style={{ background: STROKE[s.tone] }} />
@@ -55,37 +108,99 @@ export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, c
           ))}
         </figcaption>
       )}
-      <div className="relative">
-        <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="block w-full overflow-visible" style={{ height }} role="img" aria-label={ariaLabel}>
-          {gridLines.map((g) => (
-            <line key={g} x1={0} x2={W} y1={g} y2={g} stroke="var(--line)" strokeWidth={1} strokeDasharray="2 6" vectorEffect="non-scaling-stroke" />
+
+      <div className="flex gap-2">
+        {/* Value axis */}
+        <div aria-hidden className="relative w-8 shrink-0 text-[10px] text-faint tnum" style={{ height }}>
+          {ticks.map((t) => (
+            <span key={t} className="absolute right-0 -translate-y-1/2" style={{ top: yPx(t) }}>
+              {t.toFixed(t < 10 ? 1 : 0)}
+            </span>
           ))}
-          {nowIndex !== undefined && <line x1={x(nowIndex)} x2={x(nowIndex)} y1={4} y2={bottom} stroke="var(--faint)" strokeWidth={1} strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />}
-          {series.map((s) => {
-            const pts = s.values.map((v, i) => (v === null ? null : { x: x(i), y: y(v), i })).filter((p): p is { x: number; y: number; i: number } => p !== null);
-            if (pts.length < 2) return null;
-            const split = nowIndex === undefined ? -1 : pts.findIndex((p) => p.i > nowIndex);
-            const solid = split === -1 ? pts : pts.slice(0, Math.max(split, 1));
-            const dashed = split === -1 ? [] : pts.slice(Math.max(split - 1, 0));
-            const last = solid[solid.length - 1];
-            return (
-              <g key={s.label}>
-                {solid.length > 1 && <path d={path(solid)} fill="none" stroke={STROKE[s.tone]} strokeWidth={1.6} vectorEffect="non-scaling-stroke" strokeLinecap="round" />}
-                {dashed.length > 1 && <path d={path(dashed)} fill="none" stroke={STROKE[s.tone]} strokeOpacity={0.7} strokeWidth={1.6} strokeDasharray="3 5" vectorEffect="non-scaling-stroke" strokeLinecap="round" />}
-                <circle cx={last.x} cy={last.y} r={3.5} fill={STROKE[s.tone]} vectorEffect="non-scaling-stroke" />
-              </g>
-            );
-          })}
-        </svg>
-        {nowIndex !== undefined && (
-          <span className="absolute -top-1 -translate-x-1/2 rounded bg-panel-strong px-1.5 py-0.5 text-[11px] text-muted" style={{ left: `${(nowIndex / (n - 1)) * 100}%` }}>
-            {nowLabel}
-          </span>
-        )}
+        </div>
+
+        <div
+          ref={plotRef}
+          className="relative min-w-0 flex-1 cursor-crosshair touch-pan-y outline-none"
+          style={{ height }}
+          tabIndex={0}
+          role="img"
+          aria-label={`${ariaLabel}. Use the left and right arrow keys to read values.`}
+          aria-describedby={active !== null ? tooltipId : undefined}
+          onPointerMove={onPointerMove}
+          onPointerDown={onPointerMove}
+          onPointerLeave={() => setActive(null)}
+          onKeyDown={onKeyDown}
+          onBlur={() => setActive(null)}
+        >
+          <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="absolute inset-0 block size-full overflow-visible" aria-hidden>
+            {ticks.map((t) => (
+              <line key={t} x1={0} x2={W} y1={yPx(t)} y2={yPx(t)} stroke="var(--line)" strokeWidth={1} strokeDasharray="2 6" vectorEffect="non-scaling-stroke" />
+            ))}
+            {nowIndex !== undefined && <line x1={(xPct(nowIndex) / 100) * W} x2={(xPct(nowIndex) / 100) * W} y1={2} y2={bottom} stroke="var(--faint)" strokeWidth={1} strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />}
+            {series.map((s) => {
+              const pts = s.values.map((v, i) => (v === null ? null : { x: (xPct(i) / 100) * W, y: yPx(v), i })).filter((p): p is { x: number; y: number; i: number } => p !== null);
+              if (pts.length < 2) return null;
+              const split = nowIndex === undefined ? -1 : pts.findIndex((p) => p.i > nowIndex);
+              const solid = split === -1 ? pts : pts.slice(0, Math.max(split, 1));
+              const dashed = split === -1 ? [] : pts.slice(Math.max(split - 1, 0));
+              return (
+                <g key={s.label}>
+                  {solid.length > 1 && <path d={path(solid)} fill="none" stroke={STROKE[s.tone]} strokeWidth={1.6} vectorEffect="non-scaling-stroke" strokeLinecap="round" />}
+                  {dashed.length > 1 && <path d={path(dashed)} fill="none" stroke={STROKE[s.tone]} strokeOpacity={0.7} strokeWidth={1.6} strokeDasharray="3 5" vectorEffect="non-scaling-stroke" strokeLinecap="round" />}
+                </g>
+              );
+            })}
+            {active !== null && <line x1={(xPct(active) / 100) * W} x2={(xPct(active) / 100) * W} y1={0} y2={bottom} stroke="var(--muted)" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
+          </svg>
+
+          {/* "Today" marker label */}
+          {nowIndex !== undefined && (
+            <span className="pointer-events-none absolute -top-6 -translate-x-1/2 rounded bg-panel-strong px-1.5 py-0.5 text-[11px] text-muted" style={{ left: `${xPct(nowIndex)}%` }}>
+              {nowLabel}
+            </span>
+          )}
+
+          {/* Round dots (HTML, so they don't stretch with the SVG). */}
+          {active === null
+            ? ends.map(({ s, v }) => (
+                <span key={s.label} aria-hidden className="pointer-events-none absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ left: "100%", top: yPx(v), background: STROKE[s.tone] }} />
+              ))
+            : rows.map(({ s, v }) => (
+                <span key={s.label} aria-hidden className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-panel" style={{ left: `${xPct(active)}%`, top: yPx(v), background: STROKE[s.tone] }} />
+              ))}
+
+          {/* Fey tooltip */}
+          {active !== null && rows.length > 0 && (
+            <div
+              id={tooltipId}
+              role="status"
+              className="pointer-events-none absolute top-2 z-10 min-w-40 rounded-xl bg-panel-strong/95 p-3 shadow-pop backdrop-blur"
+              style={flip ? { right: `calc(${100 - xPct(active)}% + 12px)` } : { left: `calc(${xPct(active)}% + 12px)` }}
+            >
+              <p className="mb-2 text-[12px] text-muted">
+                {labels[active]} · {projected ? "projected" : "actual"}
+              </p>
+              <ul className="space-y-1.5">
+                {rows.map(({ s, v }) => (
+                  <li key={s.label} className="flex items-center justify-between gap-6 text-[13px]">
+                    <span className="flex items-center gap-2">
+                      <span aria-hidden className="h-3 w-0.5 rounded-full" style={{ background: STROKE[s.tone] }} />
+                      {s.name ?? s.label}
+                    </span>
+                    <span className="font-semibold tnum">{fmt(v)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-muted tnum">
+
+      <div className="mt-2 flex justify-between pl-10 text-[11px] text-muted tnum">
         {labels.map((l, i) => (
-          <span key={i} className={cx(i !== 0 && i !== n - 1 && "hidden sm:inline", nowIndex !== undefined && i > nowIndex && "text-faint")}>
+          <span key={i} className={cx(i !== 0 && i !== n - 1 && "hidden sm:inline", nowIndex !== undefined && i > nowIndex && "text-faint", active === i && "text-fg")}>
             {l}
           </span>
         ))}
