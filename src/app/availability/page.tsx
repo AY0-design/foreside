@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { getModel } from "@/lib/data/source";
 import { summarize } from "@/lib/data/summaries";
 import type { PlayerSummary, Status } from "@/lib/types";
@@ -24,7 +26,12 @@ export default function AvailabilityPage() {
 
   return (
     <div className="space-y-6">
-      <PageBar title="Availability" sub={`Every flagged player going into Gameweek ${model.currentGw}, most owned first`} />
+      <div className="flex items-center gap-3">
+        <Link href="/" aria-label="Back to home" className="grid size-8 shrink-0 place-items-center rounded-full text-muted hover:bg-panel hover:text-fg">
+          <ArrowLeft size={16} />
+        </Link>
+        <PageBar title="Availability" sub={`Every flagged player going into Gameweek ${model.currentGw}, most owned first`} />
+      </div>
 
       <StatStrip
         items={[
