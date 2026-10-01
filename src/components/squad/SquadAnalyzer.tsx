@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
 import { AlertOctagon, AlertTriangle, ArrowRight, Check, Info, RotateCcw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { PlayerSummary, Position } from "@/lib/types";
@@ -290,41 +289,39 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
         />
         {suggestions.length === 0 && <p className="py-4 text-[13px] text-muted">Nothing worth more than 0.3 xPts — roll the transfer.</p>}
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <AnimatePresence initial={false}>
-            {suggestions.map((s) => {
-              const out = byId.get(s.outId)!;
-              const inn = byId.get(s.inId)!;
-              const net = s.gain - (nextCostsHit ? HIT_COST : 0);
-              return (
-                <motion.li key={`${s.outId}:${s.inId}`} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }} className="flex flex-col rounded-xl bg-panel-strong/50 p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center">
-                      <span className="opacity-50">
-                        <PlayerAvatar photo={out.photo} badge={out.teamBadge} short={out.teamShort} name={out.webName} size={28} />
-                      </span>
-                      <ArrowRight size={13} className="mx-1.5 text-muted" aria-label="to" />
-                      <PlayerAvatar photo={inn.photo} badge={inn.teamBadge} short={inn.teamShort} name={inn.webName} size={28} />
+          {suggestions.map((s) => {
+            const out = byId.get(s.outId)!;
+            const inn = byId.get(s.inId)!;
+            const net = s.gain - (nextCostsHit ? HIT_COST : 0);
+            return (
+              <li key={`${s.outId}:${s.inId}`} className="flex flex-col rounded-xl bg-panel-strong/50 p-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center">
+                    <span className="opacity-50">
+                      <PlayerAvatar photo={out.photo} badge={out.teamBadge} short={out.teamShort} name={out.webName} size={28} />
                     </span>
-                    <span className="min-w-0 flex-1 text-[13px]">
-                      <span className="text-muted">{out.webName}</span> → <Link href={`/players/${inn.id}`} className="font-semibold hover:underline">{inn.webName}</Link>
-                      <span className="block text-[12px] text-muted">{inn.teamShort} · {price(inn.price)} · {own(inn.ownership)} owned</span>
-                    </span>
-                    <Delta tone="green">+{pts(s.gain)}</Delta>
-                    {nextCostsHit && <Delta tone={net > 0 ? "orange" : "red"}>net {net > 0 ? "+" : ""}{pts(net)}</Delta>}
-                  </div>
-                  <ul className="mt-3 flex-1 space-y-0.5 text-[12px] text-muted">
-                    {s.why.map((w) => (
-                      <li key={w}>{w}</li>
-                    ))}
-                  </ul>
-                  <div className="mt-4 flex gap-2">
-                    <PillButton size="sm" onClick={() => review(s.outId, s.inId, s.gain)}>Review</PillButton>
-                    <PillButton size="sm" tone="ghost" onClick={() => setDismissed((d) => new Set(d).add(`${s.outId}:${s.inId}`))}>Dismiss</PillButton>
-                  </div>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
+                    <ArrowRight size={13} className="mx-1.5 text-muted" aria-label="to" />
+                    <PlayerAvatar photo={inn.photo} badge={inn.teamBadge} short={inn.teamShort} name={inn.webName} size={28} />
+                  </span>
+                  <span className="min-w-0 flex-1 text-[13px]">
+                    <span className="text-muted">{out.webName}</span> → <Link href={`/players/${inn.id}`} className="font-semibold hover:underline">{inn.webName}</Link>
+                    <span className="block text-[12px] text-muted">{inn.teamShort} · {price(inn.price)} · {own(inn.ownership)} owned</span>
+                  </span>
+                  <Delta tone="green">+{pts(s.gain)}</Delta>
+                  {nextCostsHit && <Delta tone={net > 0 ? "orange" : "red"}>net {net > 0 ? "+" : ""}{pts(net)}</Delta>}
+                </div>
+                <ul className="mt-3 flex-1 space-y-0.5 text-[12px] text-muted">
+                  {s.why.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+                <div className="mt-4 flex gap-2">
+                  <PillButton size="sm" onClick={() => review(s.outId, s.inId, s.gain)}>Review</PillButton>
+                  <PillButton size="sm" tone="ghost" onClick={() => setDismissed((d) => new Set(d).add(`${s.outId}:${s.inId}`))}>Dismiss</PillButton>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
 
