@@ -15,19 +15,19 @@ const POSITION_LABEL = { GK: "goalkeepers", DEF: "defenders", MID: "midfielders"
 const POSITION_NAME = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" } as const;
 const CONF = { High: "green", Medium: "orange", Low: "red" } as const;
 
-function findPlayer(id: string) {
-  const model = getModel();
+async function findPlayer(id: string) {
+  const model = await getModel();
   const player = model.players.find((p) => p.id === Number(id));
   return player ? { model, player } : null;
 }
 
 export async function generateMetadata({ params }: PageProps<"/players/[id]">): Promise<Metadata> {
-  const found = findPlayer((await params).id);
+  const found = await findPlayer((await params).id);
   return { title: found?.player.webName ?? "Player not found" };
 }
 
 export default async function PlayerPage({ params }: PageProps<"/players/[id]">) {
-  const found = findPlayer((await params).id);
+  const found = await findPlayer((await params).id);
   if (!found) notFound();
   const { model, player: p } = found;
   const proj = model.projections[p.id];

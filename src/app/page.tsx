@@ -16,8 +16,8 @@ import { capitalize, own, pct } from "@/lib/format";
 
 const DATE = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 
-export default function Home() {
-  const model = getModel();
+export default async function Home() {
+  const model = await getModel();
   const all = summarize(model);
   const byId = new Map(all.map((p) => [p.id, p]));
   const teamById = new Map(model.teams.map((t) => [t.id, t]));

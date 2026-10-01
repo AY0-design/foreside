@@ -6,8 +6,8 @@ import { PageBar } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Squad" };
 
-export default function SquadPage() {
-  const model = getModel();
+export default async function SquadPage() {
+  const model = await getModel();
   return (
     <div className="space-y-6">
       <PageBar title="Squad" sub={`Gameweek ${model.currentGw} · saved in this browser`} />

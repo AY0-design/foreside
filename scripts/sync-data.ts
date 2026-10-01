@@ -12,6 +12,7 @@
  * Personal-use project: be polite to both sources (small concurrency, cached).
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { FPL, eventFields, fixtureFields, historyRows, playerFields, type FplBootstrap, type FplElement, type FplFixture, type FplLiveElement, type HistoryRow } from "../src/lib/data/fpl-api.ts";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -85,18 +86,6 @@ const emptyGrid = () => new Array(20).fill(0) as number[];
 
 // ---------- types (subset of the upstream payloads) ----------
 
-interface FplTeam { id: number; code: number; name: string; short_name: string }
-interface FplElement {
-  id: number; code: number; web_name: string; first_name: string; second_name: string; known_name?: string;
-  team: number; element_type: number; now_cost: number; selected_by_percent: string; status: string;
-  chance_of_playing_next_round: number | null; news: string; minutes: number; starts: number;
-  expected_goals: string; expected_assists: string; yellow_cards: number; penalties_order: number | null;
-  corners_and_indirect_freekicks_order: number | null; direct_freekicks_order: number | null; total_points: number;
-  form: string; can_select?: boolean; transfers_in_event: number; transfers_out_event: number;
-}
-interface FplEvent { id: number; name: string; deadline_time: string; finished: boolean; is_current: boolean; is_next: boolean }
-interface FplFixture { id: number; event: number | null; team_h: number; team_a: number; kickoff_time: string | null; finished: boolean; team_h_score: number | null; team_a_score: number | null }
-interface LiveElement { id: number; stats: Record<string, number | string | boolean>; explain: { fixture: number }[] }
 
 interface UsTeam { id: string; title: string; history: { h_a: "h" | "a"; xG: number; xGA: number; scored: number; missed: number; date: string }[] }
 interface UsPlayer { id: string; player_name: string; team_title: string; position: string; time: string; xG: string; xA: string; games: string }
@@ -166,39 +155,19 @@ function nameScore(el: FplElement, usName: string, sameClub: boolean): number {
 async function main() {
   await mkdir(CACHE, { recursive: true });
   console.log("FPL: bootstrap + fixtures");
-  const bootstrap = await getJson<{ events: FplEvent[]; teams: FplTeam[]; elements: FplElement[] }>(
-    "https://fantasy.premierleague.com/api/bootstrap-static/",
-  );
-  const fixtures = await getJson<FplFixture[]>("https://fantasy.premierleague.com/api/fixtures/");
+  const bootstrap = await getJson<FplBootstrap>(`${FPL}/bootstrap-static/`);
+  const fixtures = await getJson<FplFixture[]>(`${FPL}/fixtures/`);
 
   const finishedGws = bootstrap.events.filter((e) => e.finished).map((e) => e.id);
   console.log(`FPL: live stats for GW ${finishedGws.join(", ")}`);
   const live = await pool(finishedGws, 3, async (gw) => ({
     gw,
-    elements: (await getJson<{ elements: LiveElement[] }>(`https://fantasy.premierleague.com/api/event/${gw}/live/`)).elements,
+    elements: (await getJson<{ elements: FplLiveElement[] }>(`${FPL}/event/${gw}/live/`)).elements,
   }));
 
-  const history = new Map<number, { gw: number; fixtures: number[]; minutes: number; points: number; goals: number; assists: number; starts: number; defcon: number; xg: number; xa: number }[]>();
+  const history = new Map<number, HistoryRow[]>();
   for (const { gw, elements } of live) {
-    for (const el of elements) {
-      const s = el.stats;
-      const fixtureIds = el.explain.map((x) => x.fixture);
-      if (fixtureIds.length === 0) continue;
-      const rows = history.get(el.id) ?? [];
-      rows.push({
-        gw,
-        fixtures: fixtureIds,
-        minutes: Number(s.minutes),
-        points: Number(s.total_points),
-        goals: Number(s.goals_scored),
-        assists: Number(s.assists),
-        starts: Number(s.starts),
-        defcon: Number(s.defensive_contribution ?? 0),
-        xg: Number(s.expected_goals),
-        xa: Number(s.expected_assists),
-      });
-      history.set(el.id, rows);
-    }
+    for (const [id, row] of historyRows(gw, elements)) history.set(id, [...(history.get(id) ?? []), row]);
   }
 
   // ---- Understat ----
@@ -301,28 +270,7 @@ async function main() {
     const understatId = byElement.get(el.id) ?? null;
     const us = understatId ? usPlayers.get(understatId)! : null;
     return {
-      id: el.id,
-      code: el.code,
-      webName: el.web_name,
-      name: el.known_name || `${el.first_name} ${el.second_name}`,
-      team: el.team,
-      elementType: el.element_type,
-      price: el.now_cost / 10,
-      ownership: Number(el.selected_by_percent),
-      status: el.status,
-      chance: el.chance_of_playing_next_round,
-      news: el.news || null,
-      minutes: el.minutes,
-      starts: el.starts,
-      xg: Number(el.expected_goals),
-      xa: Number(el.expected_assists),
-      yellows: el.yellow_cards,
-      penaltiesOrder: el.penalties_order,
-      cornersOrder: el.corners_and_indirect_freekicks_order,
-      freekicksOrder: el.direct_freekicks_order,
-      totalPoints: el.total_points,
-      transfersIn: el.transfers_in_event,
-      transfersOut: el.transfers_out_event,
+      ...playerFields(el),
       history: history.get(el.id) ?? [],
       understat: us
         ? {
@@ -367,12 +315,10 @@ async function main() {
   const snapshot = {
     fetchedAt: new Date().toISOString(),
     sources: ["fantasy.premierleague.com", "understat.com"],
-    events: bootstrap.events.map((e) => ({ id: e.id, name: e.name, deadline: e.deadline_time, finished: e.finished, isCurrent: e.is_current, isNext: e.is_next })),
+    events: bootstrap.events.map(eventFields),
     teams,
     players,
-    fixtures: fixtures
-      .filter((f) => f.event !== null)
-      .map((f) => ({ id: f.id, gw: f.event!, homeId: f.team_h, awayId: f.team_a, kickoff: f.kickoff_time, finished: f.finished, homeScore: f.team_h_score, awayScore: f.team_a_score })),
+    fixtures: fixtureFields(fixtures),
   };
 
   await writeFile(path.join(DATA, "snapshot.json"), JSON.stringify(snapshot));

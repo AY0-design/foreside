@@ -12,14 +12,14 @@ import { describeZone } from "@/lib/engine/explain";
 import { zoneRatio } from "@/lib/engine/zones";
 import { capitalize, cx, own, pct, pts } from "@/lib/format";
 
-function findFixture(id: string) {
-  const model = getModel();
+async function findFixture(id: string) {
+  const model = await getModel();
   const fixture = model.fixtures.find((f) => f.id === Number(id));
   return fixture ? { model, fixture } : null;
 }
 
 export async function generateMetadata({ params }: PageProps<"/fixtures/[id]">): Promise<Metadata> {
-  const found = findFixture((await params).id);
+  const found = await findFixture((await params).id);
   if (!found) return { title: "Fixture not found" };
   const t = (id: number) => found.model.teams.find((x) => x.id === id)!.short;
   return { title: `${t(found.fixture.homeId)} v ${t(found.fixture.awayId)}` };
@@ -39,7 +39,7 @@ function recentForm(model: Model, teamId: number) {
 }
 
 export default async function FixturePage({ params }: PageProps<"/fixtures/[id]">) {
-  const found = findFixture((await params).id);
+  const found = await findFixture((await params).id);
   if (!found) notFound();
   const { model, fixture: f } = found;
   const teamById = new Map(model.teams.map((t) => [t.id, t]));

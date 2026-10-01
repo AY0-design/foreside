@@ -17,14 +17,14 @@ import { PlayerIdentity, ProjectionValue } from "@/components/PlayerBits";
 import { Delta, GroupRow, HeroNumber, Panel, PanelHeader, ROW, Sparkline, StatStrip, TD, TeamBadge, TH } from "@/components/ui/primitives";
 import { capitalize, cx, own, pct, price, pts } from "@/lib/format";
 
-function findTeam(id: string) {
-  const model = getModel();
+async function findTeam(id: string) {
+  const model = await getModel();
   const team = model.teams.find((t) => t.id === Number(id));
   return team ? { model, team } : null;
 }
 
 export async function generateMetadata({ params }: PageProps<"/teams/[id]">): Promise<Metadata> {
-  const found = findTeam((await params).id);
+  const found = await findTeam((await params).id);
   return { title: found?.team.name ?? "Team not found" };
 }
 
@@ -36,7 +36,7 @@ const POSITIONS: { position: Position; label: string }[] = [
 ];
 
 export default async function TeamPage({ params }: PageProps<"/teams/[id]">) {
-  const found = findTeam((await params).id);
+  const found = await findTeam((await params).id);
   if (!found) notFound();
   const { model, team } = found;
   const all = summarize(model);

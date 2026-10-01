@@ -11,7 +11,7 @@ import { cx, pct, pts } from "@/lib/format";
 export const metadata: Metadata = { title: "Fixtures" };
 
 export default async function FixturesPage({ searchParams }: PageProps<"/fixtures">) {
-  const model = getModel();
+  const model = await getModel();
   const requested = Number((await searchParams).gw);
   const gws = Array.from({ length: HORIZON }, (_, i) => model.currentGw + i);
   const gw = gws.includes(requested) ? requested : model.currentGw;

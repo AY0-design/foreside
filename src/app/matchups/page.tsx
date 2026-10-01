@@ -22,7 +22,7 @@ const GROUPS: { position: Position; label: string }[] = [
 const LANE_SHORT = ["LW", "LHS", "C", "RHS", "RW"];
 
 export default async function MatchupsPage({ searchParams }: PageProps<"/matchups">) {
-  const model = getModel();
+  const model = await getModel();
   const requested = Number((await searchParams).gw);
   const gws = Array.from({ length: HORIZON }, (_, i) => model.currentGw + i);
   const gw = gws.includes(requested) ? requested : model.currentGw;

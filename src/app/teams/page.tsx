@@ -19,8 +19,8 @@ const GROUPS: { label: string; test: (t: Team) => boolean }[] = [
   { label: "Weakest attacks", test: (t) => t.attack < 0.95 },
 ];
 
-export default function TeamsPage() {
-  const model = getModel();
+export default async function TeamsPage() {
+  const model = await getModel();
   const teamById = new Map(model.teams.map((t) => [t.id, t]));
   const gws = Array.from({ length: HORIZON }, (_, i) => model.currentGw + i);
   const league = model.leagueVulnerability;

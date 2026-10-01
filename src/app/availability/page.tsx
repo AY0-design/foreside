@@ -21,7 +21,7 @@ const TABS: { status: Flag; label: string; empty: string }[] = [
 export default async function AvailabilityPage({ searchParams }: PageProps<"/availability">) {
   const { status } = await searchParams;
   const tab = TABS.find((t) => t.status === status) ?? TABS[0];
-  const model = getModel();
+  const model = await getModel();
   const flagged = summarize(model).filter((p) => p.status !== "available");
   const count = (s: Flag) => flagged.filter((p) => p.status === s).length;
   const rows = flagged.filter((p) => p.status === tab.status).sort((a, b) => b.ownership - a.ownership);

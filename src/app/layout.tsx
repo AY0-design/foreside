@@ -21,8 +21,8 @@ export const metadata: Metadata = {
 
 const POS = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" } as const;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  const model = getModel();
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const model = await getModel();
   const { currentGw, deadline } = model;
   const teamById = new Map(model.teams.map((t) => [t.id, t]));
   const search: SearchItem[] = [

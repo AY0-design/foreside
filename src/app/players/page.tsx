@@ -11,7 +11,7 @@ const VIEWS: View[] = ["all", "captain", "differentials", "budget"];
 export default async function PlayersPage({ searchParams }: PageProps<"/players">) {
   const { view } = await searchParams;
   const initialView = VIEWS.includes(view as View) ? (view as View) : "all";
-  const model = getModel();
+  const model = await getModel();
   return (
     <div className="space-y-6">
       <PageBar title="Players" sub={`Gameweek ${model.currentGw} projections, confidence and zone fit`} />
