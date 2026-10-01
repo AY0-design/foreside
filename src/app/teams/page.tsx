@@ -4,6 +4,7 @@ import { getModel } from "@/lib/data/source";
 import { teamBadge } from "@/lib/data/summaries";
 import { hotZones } from "@/lib/engine/matchups";
 import { describeZone } from "@/lib/engine/explain";
+import { LANES } from "@/lib/engine/zones";
 import { difficultyFromXg, LEAGUE_GOALS } from "@/lib/engine/team";
 import { HORIZON } from "@/lib/engine/project";
 import type { Team } from "@/lib/types";
@@ -43,14 +44,15 @@ export default async function TeamsPage() {
       <PageBar title="Teams" sub="Attack, defence and the zones each side leaves open" />
       <Panel className="px-2 sm:px-3">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left">
+          {/* Fits the panel from tablet up by dropping detail columns; only phones scroll sideways. */}
+          <table className="w-full min-w-[560px] text-left md:min-w-0">
             <thead>
               <tr>
                 <th scope="col" className={TH}>Team</th>
                 <th scope="col" className={cx(TH, "text-right")}>xG / game</th>
                 <th scope="col" className={cx(TH, "text-right")}>xGA / game</th>
-                <th scope="col" className={cx(TH, "text-center")}>xG by match</th>
-                <th scope="col" className={TH}>Form</th>
+                <th scope="col" className={cx(TH, "hidden text-center xl:table-cell")}>xG by match</th>
+                <th scope="col" className={cx(TH, "hidden lg:table-cell")}>Form</th>
                 <th scope="col" className={TH}>Weakest zone</th>
                 <th scope="col" className={TH}>Next {HORIZON}</th>
               </tr>
@@ -70,15 +72,15 @@ export default async function TeamsPage() {
                           <Link href={`/teams/${team.id}`} className="flex items-center gap-2.5">
                             <TeamBadge src={teamBadge(team)} short={team.short} size={22} />
                             <span className="font-semibold">{team.short}</span>
-                            <span className="text-muted">{team.name}</span>
+                            <span className="hidden text-muted xl:inline">{team.name}</span>
                           </Link>
                         </td>
                         <td className={cx(TD, "text-right tnum")}>{(team.attack * LEAGUE_GOALS).toFixed(2)}</td>
                         <td className={cx(TD, "text-right tnum")}>{(team.defenceWeakness * LEAGUE_GOALS).toFixed(2)}</td>
-                        <td className={cx(TD, "text-center")}>
+                        <td className={cx(TD, "hidden text-center xl:table-cell")}>
                           <Sparkline values={team.matches.map((m) => m.xg)} tone="blue" />
                         </td>
-                        <td className={TD}>
+                        <td className={cx(TD, "hidden lg:table-cell")}>
                           <span className="flex gap-0.5">
                             {form(team.id).map((r, i) => (
                               <Delta key={i} tone={r === "W" ? "green" : r === "L" ? "red" : "neutral"} className="w-5 justify-center px-0">
@@ -88,9 +90,12 @@ export default async function TeamsPage() {
                           </span>
                         </td>
                         <td className={TD}>
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center gap-2" title={capitalize(describeZone(hot.zone))}>
                             <MiniZone grid={team.vulnerability} league={league} highlight={hot.zone} size={36} />
-                            <span className="text-muted">{capitalize(describeZone(hot.zone))}</span>
+                            <span className="hidden items-center gap-1 text-muted lg:flex">
+                              {LANES[hot.zone % 5]}
+                              <span className="rounded bg-panel-strong px-1 py-px text-[11px]">{hot.zone >= 15 ? "box" : "final ⅓"}</span>
+                            </span>
                             <Delta tone="pink">{hot.ratio.toFixed(2)}×</Delta>
                           </span>
                         </td>

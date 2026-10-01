@@ -187,14 +187,15 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
             </label>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left">
+            {/* In the two-column layout (lg) the panel is narrow, so "Next 5" waits for xl. */}
+            <table className="w-full min-w-[520px] text-left lg:min-w-0">
               <thead>
                 <tr>
                   <th scope="col" className={TH}>Player</th>
                   <th scope="col" className={TH}>Fixture</th>
                   <th scope="col" className={cx(TH, "text-right")}>xPts</th>
                   <th scope="col" className={cx(TH, "text-right")}>Zone fit</th>
-                  <th scope="col" className={cx(TH, "text-right")}>Next 5</th>
+                  <th scope="col" className={cx(TH, "text-right lg:max-xl:hidden")}>Next 5</th>
                   <th scope="col" className={cx(TH, "text-right")}>Role</th>
                 </tr>
               </thead>
@@ -221,7 +222,7 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
                           </td>
                           <td className={cx(TD, "text-right font-semibold tnum")}>{pts(p.xPts * (r === "C" ? 2 : 1))}</td>
                           <td className={cx(TD, "text-right tnum", p.matchup >= 1.05 && "text-pink")}>{p.matchup.toFixed(2)}×</td>
-                          <td className={cx(TD, "text-right tnum")}>{pts(p.horizonTotal)}</td>
+                          <td className={cx(TD, "text-right tnum lg:max-xl:hidden")}>{pts(p.horizonTotal)}</td>
                           <td className={cx(TD, "text-right")}>
                             <Delta tone={r === "C" ? "blue" : r === "V" ? "blue" : r === "XI" ? "green" : "neutral"}>{r}</Delta>
                           </td>

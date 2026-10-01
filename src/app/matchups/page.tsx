@@ -50,7 +50,7 @@ export default async function MatchupsPage({ searchParams }: PageProps<"/matchup
         <Panel>
           <PanelHeader title="Where every defence is open" sub="Chance volume conceded by zone vs league average · pink = open" />
           <div className="-mx-2 overflow-x-auto px-2">
-            <table className="w-full min-w-[520px] border-separate border-spacing-[3px] text-[12px]">
+            <table className="w-full min-w-[520px] border-separate border-spacing-[3px] text-[12px] lg:min-w-0">
               <thead>
                 <tr className="h-6">
                   <th />
@@ -140,7 +140,7 @@ export default async function MatchupsPage({ searchParams }: PageProps<"/matchup
           <PanelHeader title="Best matchups" sub="Ranked by how much the matchup lifts each player, weighted by threat and minutes." />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left">
+          <table className="w-full min-w-[600px] text-left md:min-w-0">
             <thead>
               <tr>
                 <th scope="col" className={TH}>Player</th>
@@ -173,9 +173,12 @@ export default async function MatchupsPage({ searchParams }: PageProps<"/matchup
                           </Link>
                         </td>
                         <td className={TD}>
-                          <span className="flex items-center gap-2.5">
+                          <span className="flex items-center gap-2.5" title={capitalize(describeZone(e.zone))}>
                             <MiniZone grid={opp.vulnerability} league={league} highlight={e.zone} size={40} />
-                            <span className="text-muted">{capitalize(describeZone(e.zone))}</span>
+                            <span className="hidden items-center gap-1 text-muted lg:flex">
+                              {LANES[e.zone % 5]}
+                              <span className="rounded bg-panel-strong px-1 py-px text-[11px]">{e.zone >= 15 ? "box" : "final ⅓"}</span>
+                            </span>
                           </span>
                         </td>
                         <td className={cx(TD, "text-right tnum")}>{e.zoneRatio.toFixed(2)}×</td>
