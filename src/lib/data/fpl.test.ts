@@ -30,6 +30,19 @@ describe.skipIf(!existsSync(file))("real-data snapshot", () => {
     expect(data.deadline).toBe(event.deadline);
   });
 
+  it("plans for the next deadline when synced while a gameweek is being played", () => {
+    // FPL mid-round: the current gameweek's deadline has passed but its matches aren't finished.
+    const gw = data.currentGw;
+    const live: Snapshot = {
+      ...snapshot,
+      fetchedAt: new Date(new Date(snapshot.events.find((e) => e.id === gw)!.deadline).getTime() + 3_600_000).toISOString(),
+      events: snapshot.events.map((e) => ({ ...e, isCurrent: e.id === gw, isNext: e.id === gw + 1, finished: e.id < gw })),
+    };
+    const during = fromSnapshot(live);
+    expect(during.currentGw).toBe(gw + 1);
+    expect(new Date(during.deadline!).getTime()).toBeGreaterThan(new Date(live.fetchedAt).getTime());
+  });
+
   it("produces bounded per-90 rates and probabilities for every player", () => {
     for (const p of data.players) {
       expect(p.xg90).toBeGreaterThanOrEqual(0);

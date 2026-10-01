@@ -147,8 +147,12 @@ function status(raw: string, chance: number | null): { status: Status; chance: n
 
 export function fromSnapshot(snapshot: Snapshot): SourceData {
   const teams = buildTeams(snapshot);
+  // Plan for the next deadline still open at sync time. FPL keeps a round "current" until its
+  // matches finish, long after its deadline has locked, so the flags alone point at a closed round.
+  const syncedAt = new Date(snapshot.fetchedAt).getTime();
   const current = snapshot.events.find((e) => e.isCurrent);
-  const target = current && !current.finished ? current : snapshot.events.find((e) => e.isNext) ?? current;
+  const open = [...snapshot.events].sort((a, b) => a.id - b.id).find((e) => new Date(e.deadline).getTime() > syncedAt);
+  const target = open ?? (current && !current.finished ? current : snapshot.events.find((e) => e.isNext) ?? current);
   const currentGw = target?.id ?? 1;
 
   const fixtures: Fixture[] = snapshot.fixtures.map((f) => ({
