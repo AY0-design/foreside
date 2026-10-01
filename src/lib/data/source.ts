@@ -101,3 +101,16 @@ export async function getModel(): Promise<Model> {
   }
   return currentModel(snapshot);
 }
+
+/** Where the data being served came from, for /api/status. */
+export async function dataStatus() {
+  const model = await getModel();
+  return {
+    source: live ? ("live" as const) : base ? ("snapshot" as const) : ("demo" as const),
+    gameweek: model.currentGw,
+    deadline: model.deadline,
+    liveFetchedAt: live?.fetchedAt ?? null,
+    snapshotSyncedAt: base?.snapshot.fetchedAt ?? null,
+    lastFplAttempt: lastAttempt ? new Date(lastAttempt).toISOString() : null,
+  };
+}
