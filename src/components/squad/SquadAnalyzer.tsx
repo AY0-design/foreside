@@ -14,29 +14,49 @@ import { ReplaceDrawer } from "./ReplaceDrawer";
 import { ConfirmTransfer, type PendingTransfer } from "./ConfirmTransfer";
 import { cx, own, pct, price, pts } from "@/lib/format";
 
-const STORAGE_KEY = "foreside:squad:v3";
+const STORAGE_KEY = "foreside:squad:v4";
+const LEGACY_KEY = "foreside:squad:v3";
 const HIT_COST = 4;
 
-interface Saved {
+/** A squad the user has changed with transfers. Until then the page follows the latest recommendation. */
+interface Custom {
   ids: number[];
-  freeTransfers: number;
   transfers: { outId: number; inId: number }[];
   /** Why each player is in the squad (recommendation or transfer). */
   origin: Record<number, string>;
 }
 
-function load(): Saved | null {
+interface Saved {
+  freeTransfers: number;
+  custom: Custom | null;
+}
+
+function read(key: string): unknown {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Saved) : null;
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
+/** The saved state, migrating a v3 save: kept only if it had transfers (otherwise it was just an old recommendation). */
+function load(): Partial<Saved> | null {
+  const v4 = read(STORAGE_KEY) as Partial<Saved> | null;
+  if (v4 && typeof v4 === "object") return v4;
+  const v3 = read(LEGACY_KEY) as { ids?: unknown; freeTransfers?: unknown; transfers?: unknown; origin?: unknown } | null;
+  if (!v3 || typeof v3 !== "object") return null;
+  const transfers = Array.isArray(v3.transfers) ? (v3.transfers as Custom["transfers"]) : [];
+  return {
+    freeTransfers: Number(v3.freeTransfers),
+    custom: transfers.length && Array.isArray(v3.ids) ? { ids: v3.ids as number[], transfers, origin: (v3.origin && typeof v3.origin === "object" ? v3.origin : {}) as Custom["origin"] } : null,
+  };
+}
+
 function save(state: Saved) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.removeItem(LEGACY_KEY);
   } catch {
     // Storage unavailable (private mode, blocked). The squad still works for this session.
   }
@@ -67,26 +87,24 @@ export function SquadAnalyzer({ players }: { players: PlayerSummary[] }) {
 function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const recommendation = useMemo(() => recommendSquad(players), [players]);
-  const fresh = useCallback((): Saved => ({ ids: recommendation.ids, freeTransfers: 1, transfers: [], origin: recommendation.reasons }), [recommendation]);
 
-  // Restore a saved squad once; ignore anything the current data can't validate.
+  // Restore once. A saved edit is kept only while the current data still validates it.
   const [initial] = useState<Saved>(() => {
     const saved = load();
-    if (saved && Array.isArray(saved.ids) && validateSquad(saved.ids, byId).length === 0) {
-      return {
-        ids: saved.ids,
-        freeTransfers: Math.min(5, Math.max(0, Number(saved.freeTransfers) || 1)),
-        transfers: Array.isArray(saved.transfers) ? saved.transfers : [],
-        origin: saved.origin && typeof saved.origin === "object" ? saved.origin : {},
-      };
-    }
-    return fresh();
+    const c = saved?.custom;
+    const valid = c && Array.isArray(c.ids) && Array.isArray(c.transfers) && c.transfers.length > 0 && validateSquad(c.ids, byId).length === 0;
+    return {
+      freeTransfers: Math.min(5, Math.max(0, Number.isFinite(Number(saved?.freeTransfers)) ? Number(saved?.freeTransfers) : 1)),
+      custom: valid ? { ids: c.ids, transfers: c.transfers, origin: c.origin && typeof c.origin === "object" ? c.origin : {} } : null,
+    };
   });
 
-  const [ids, setIds] = useState<number[]>(initial.ids);
+  const [custom, setCustom] = useState<Custom | null>(initial.custom);
   const [freeTransfers, setFreeTransfers] = useState(initial.freeTransfers);
-  const [transfers, setTransfers] = useState<Saved["transfers"]>(initial.transfers);
-  const [origin, setOrigin] = useState<Saved["origin"]>(initial.origin);
+  // Untouched, the squad is always the latest recommendation; the first transfer makes it the user's.
+  const ids = custom?.ids ?? recommendation.ids;
+  const transfers = custom?.transfers ?? [];
+  const origin = custom?.origin ?? recommendation.reasons;
   const [horizon, setHorizon] = useState<Horizon>(1);
   const [lens, setLens] = useState<Lens>("xPts");
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -95,8 +113,8 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
   const [pending, setPending] = useState<PendingTransfer | null>(null);
 
   useEffect(() => {
-    save({ ids, freeTransfers, transfers, origin });
-  }, [ids, freeTransfers, transfers, origin]);
+    save({ freeTransfers, custom });
+  }, [freeTransfers, custom]);
 
   const analysis = useMemo(() => analyzeSquad(ids, byId), [ids, byId]);
   const suggestions = useMemo(() => suggestTransfers(ids, players, byId, horizon, dismissed), [ids, players, byId, horizon, dismissed]);
@@ -121,22 +139,18 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
   const confirm = () => {
     if (!pending) return;
     const { out, in: inn, gain } = pending;
-    setIds((cur) => applyTransfer(cur, out.id, inn.id));
-    setTransfers((t) => [...t, { outId: out.id, inId: inn.id }]);
-    setOrigin((o) => {
-      const next = { ...o };
-      delete next[out.id];
-      next[inn.id] = `You brought ${inn.webName} in for ${out.webName}${gain !== null ? `, adding ${gain.toFixed(1)} xPts to your best XI ${pending.horizon === 1 ? "this gameweek" : "over the next five"}` : ""}.`;
-      return next;
+    const why = `You brought ${inn.webName} in for ${out.webName}${gain !== null ? `, adding ${gain.toFixed(1)} xPts to your best XI ${pending.horizon === 1 ? "this gameweek" : "over the next five"}` : ""}.`;
+    setCustom((c) => {
+      const base = c ?? { ids: recommendation.ids, transfers: [], origin: recommendation.reasons };
+      const nextOrigin = { ...base.origin, [inn.id]: why };
+      delete nextOrigin[out.id];
+      return { ids: applyTransfer(base.ids, out.id, inn.id), transfers: [...base.transfers, { outId: out.id, inId: inn.id }], origin: nextOrigin };
     });
     setPending(null);
   };
 
   const reset = () => {
-    const f = fresh();
-    setIds(f.ids);
-    setTransfers([]);
-    setOrigin(f.origin);
+    setCustom(null);
     setDismissed(new Set());
   };
 
@@ -165,9 +179,11 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
 
             <div className="mt-5 mb-3 flex items-center justify-between gap-2">
               <SegmentedControl<Lens> size="sm" label="Pitch lens" value={lens} onChange={setLens} options={LENSES} />
-              <button type="button" onClick={reset} aria-label="Reset to recommended squad" title="Reset to recommended squad" className="grid size-7 place-items-center rounded-full text-muted hover:bg-panel-strong hover:text-fg">
-                <RotateCcw size={13} />
-              </button>
+              {custom && (
+                <button type="button" onClick={reset} aria-label="Back to the latest recommendation" title="Back to the latest recommendation" className="grid size-7 place-items-center rounded-full text-muted hover:bg-panel-strong hover:text-fg">
+                  <RotateCcw size={13} />
+                </button>
+              )}
             </div>
             <Pitch starters={starters} bench={bench} captainId={analysis.lineup.captainId} viceId={analysis.lineup.viceId} lens={lens} onSelect={setInspecting} />
             <p className="mt-3 text-[12px] text-muted">Tap any player to see why they were picked.</p>
@@ -210,7 +226,21 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
         {/* Right: the squad as a Fey watchlist */}
         <Panel className="px-2 sm:px-3">
           <div className="flex flex-wrap items-center justify-between gap-3 px-3">
-            <PanelHeader title="Squad" sub="Recommended £100m squad — every pick has a reason" />
+            <PanelHeader
+              title={custom ? "Your squad" : "Squad"}
+              sub={
+                custom ? (
+                  <>
+                    Edited from the recommendation · {transfers.length} transfer{transfers.length === 1 ? "" : "s"} ·{" "}
+                    <button type="button" onClick={reset} className="font-medium text-fg hover:underline">
+                      Back to latest recommendation
+                    </button>
+                  </>
+                ) : (
+                  "Recommended £100m squad from the latest data. Every pick has a reason."
+                )
+              }
+            />
             <label className="mb-5 flex items-center gap-2 text-[12px] text-muted">
               Free transfers
               <select value={freeTransfers} onChange={(e) => setFreeTransfers(Number(e.target.value))} className="rounded-md bg-panel-strong px-1.5 py-0.5 text-[13px] font-semibold text-fg">

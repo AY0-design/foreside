@@ -10,7 +10,7 @@ export default async function SquadPage() {
   const model = await getModel();
   return (
     <div className="space-y-6">
-      <PageBar title="Recommended squad" sub={`Gameweek ${model.currentGw} · saved in this browser`} />
+      <PageBar title="Recommended squad" sub={`Gameweek ${model.currentGw} · follows the latest data until you make a transfer`} />
       <SquadAnalyzer players={summarize(model)} />
     </div>
   );
