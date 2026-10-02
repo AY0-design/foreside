@@ -73,7 +73,7 @@ export default async function Home() {
             decimals={2}
             series={[
               { label: `Goals per match · ${sentiment.goalsPerMatch.toFixed(2)} projected`, name: "Goals per match", tone: "blue", values: [...actual, ...projected.map(() => null)] },
-              { label: "Projected", name: "Projected per match", tone: "pink", projection: true, values: [...actual.map((v, i) => (i === actual.length - 1 ? v : null)), ...projected] },
+              { label: "Projected", name: "Goals per match", tone: "pink", projection: true, values: [...actual.map((v, i) => (i === actual.length - 1 ? v : null)), ...projected] },
             ]}
           />
 

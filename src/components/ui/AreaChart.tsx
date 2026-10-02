@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { cx } from "@/lib/format";
 
 export interface Series {
@@ -13,6 +13,10 @@ export interface Series {
   /** A projection that only continues the actual line: hidden in the tooltip up to "Today". */
   projection?: boolean;
 }
+
+/** Matches the layout: the plot sits 16px inside its box (left-4/right-4), after a 32px axis and 8px gap. */
+const PLOT_INSET = 16;
+const AXIS_WIDTH = 40;
 
 const STROKE = { blue: "var(--blue)", pink: "var(--pink)", muted: "var(--faint)" } as const;
 
@@ -48,6 +52,25 @@ export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, c
   const innerRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<number | null>(null);
   const tooltipId = useId();
+  const tipRef = useRef<HTMLDivElement>(null);
+  const [tipLeft, setTipLeft] = useState<number | null>(null);
+
+  // Place the tooltip so it never wraps: right of the crosshair if it fits, else left, else as
+  // close as the figure allows. Measured before paint, so it never visibly jumps.
+  useLayoutEffect(() => {
+    const plot = innerRef.current;
+    const tip = tipRef.current;
+    if (active === null || !plot || !tip || n < 2) return;
+    const width = plot.clientWidth;
+    const x = (active / (n - 1)) * width;
+    const w = tip.offsetWidth;
+    const gap = 12;
+    const min = -PLOT_INSET - AXIS_WIDTH; // the figure's left edge, over the value axis
+    const max = width + PLOT_INSET; // the figure's right edge
+    const left = x + gap + w <= max ? x + gap : x - gap - w >= min ? x - gap - w : Math.min(max - w, Math.max(min, x - w / 2));
+    setTipLeft(left);
+  }, [active, n]);
+
   if (n < 2) return null;
 
   const W = 1000;
@@ -85,7 +108,6 @@ export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, c
           .map((s) => ({ s, v: s.values[active] }))
           .filter((r): r is { s: Series; v: number } => r.v !== null && r.v !== undefined);
   const projected = active !== null && nowIndex !== undefined && active > nowIndex;
-  const flip = active !== null && xPct(active) > 62;
 
   // Last point of each series, marked with a dot at rest.
   const ends = series
@@ -179,8 +201,9 @@ export function AreaChart({ series, labels, nowIndex, height = 200, ariaLabel, c
               <div
                 id={tooltipId}
                 role="status"
-                className="pointer-events-none absolute top-2 z-10 min-w-40 rounded-xl bg-panel-strong/95 p-3 shadow-pop backdrop-blur"
-                style={flip ? { right: `calc(${100 - xPct(active)}% + 12px)` } : { left: `calc(${xPct(active)}% + 12px)` }}
+                ref={tipRef}
+                className="pointer-events-none absolute top-2 z-10 w-max min-w-40 rounded-xl bg-panel-strong/95 p-3 whitespace-nowrap shadow-pop backdrop-blur"
+                style={{ left: tipLeft ?? 0, visibility: tipLeft === null ? "hidden" : undefined }}
               >
                 <p className="mb-2 text-[12px] text-muted">
                   {labels[active]} · {projected ? "projected" : "actual"}
