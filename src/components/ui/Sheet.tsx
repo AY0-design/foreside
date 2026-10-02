@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { cx } from "@/lib/format";
 
@@ -18,6 +18,10 @@ export function Sheet({ open, onClose, title, children, footer, variant = "side"
   variant?: "side" | "center";
   labelledBy: string;
 }) {
+  // Full transform strings stay on the compositor; reduced motion keeps the fade and drops the slide.
+  const reduce = useReducedMotion();
+  const hidden = reduce ? { opacity: 0 } : variant === "side" ? { transform: "translateX(100%)" } : { transform: "translateY(40px)", opacity: 0 };
+  const shown = reduce ? { opacity: 1 } : variant === "side" ? { transform: "translateX(0%)" } : { transform: "translateY(0px)", opacity: 1 };
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -49,10 +53,10 @@ export function Sheet({ open, onClose, title, children, footer, variant = "side"
               "fixed z-50 flex flex-col bg-bg text-fg shadow-pop",
               variant === "side" ? "inset-y-2 right-2 w-[calc(100%-16px)] max-w-md rounded-2xl" : "inset-x-0 bottom-0 max-h-[92vh] rounded-t-2xl sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:w-[420px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl",
             )}
-            initial={variant === "side" ? { x: "100%" } : { y: 40, opacity: 0 }}
-            animate={variant === "side" ? { x: 0 } : { y: 0, opacity: 1 }}
-            exit={variant === "side" ? { x: "100%" } : { y: 40, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 420, damping: 38 }}
+            initial={hidden}
+            animate={shown}
+            exit={hidden}
+            transition={reduce ? { duration: 0.2 } : { type: "spring", stiffness: 420, damping: 38 }}
           >
             <div className="flex items-center justify-between gap-3 px-6 pt-6 pb-3">
               <h2 id={labelledBy} className="text-[15px] font-semibold">{title}</h2>

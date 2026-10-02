@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "motion/react";
 import { Search } from "lucide-react";
 import { NAV } from "@/components/Nav";
 import { cx } from "@/lib/format";
@@ -16,7 +15,10 @@ export interface SearchItem {
   terms: string;
 }
 
-/** Fey's command search: ⌘K or the dock button, type, arrow, enter. */
+/**
+ * Fey's command search: ⌘K or the dock button, type, arrow, enter. Opens and closes instantly:
+ * it's keyboard-driven and used constantly, and any motion would make it feel slower.
+ */
 export function CommandPalette({ items }: { items: SearchItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -58,65 +60,58 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
     router.push(item.href);
   };
 
+  if (!open) return null;
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Search"
-            className="fixed top-[14vh] left-1/2 z-50 w-[min(560px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl bg-panel shadow-pop"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.16 }}
-          >
-            <label className="flex items-center gap-3 border-b border-line px-4">
-              <Search size={16} className="text-muted" aria-hidden />
-              <span className="sr-only">Search</span>
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setCursor(0);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setCursor((c) => Math.min(results.length - 1, c + 1));
-                  } else if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    setCursor((c) => Math.max(0, c - 1));
-                  } else if (e.key === "Enter") go(results[cursor]);
-                }}
-                placeholder="Search players, teams, pages…"
-                className="h-13 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted focus-visible:outline-none"
-                aria-controls="search-results"
-              />
-              <kbd className="rounded bg-panel-strong px-1.5 py-0.5 text-[11px] text-muted">esc</kbd>
-            </label>
-            <ul id="search-results" role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
-              {results.length === 0 && <li className="px-3 py-6 text-center text-[13px] text-muted">No matches</li>}
-              {results.map((r, i) => (
-                <li key={r.href} role="option" aria-selected={i === cursor}>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setCursor(i)}
-                    onClick={() => go(r)}
-                    className={cx("flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left", i === cursor ? "bg-panel-strong" : "")}
-                  >
-                    <span className="truncate text-[14px] font-medium">{r.label}</span>
-                    <span className="shrink-0 text-[12px] text-muted">{r.sub}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <>
+      <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
+        className="fixed top-[14vh] left-1/2 z-50 w-[min(560px,calc(100vw-32px))] -translate-x-1/2 overflow-hidden rounded-2xl bg-panel shadow-pop"
+      >
+        <label className="flex items-center gap-3 border-b border-line px-4">
+          <Search size={16} className="text-muted" aria-hidden />
+          <span className="sr-only">Search</span>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setCursor(0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setCursor((c) => Math.min(results.length - 1, c + 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setCursor((c) => Math.max(0, c - 1));
+              } else if (e.key === "Enter") go(results[cursor]);
+            }}
+            placeholder="Search players, teams, pages…"
+            className="h-13 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted focus-visible:outline-none"
+            aria-controls="search-results"
+          />
+          <kbd className="rounded bg-panel-strong px-1.5 py-0.5 text-[11px] text-muted">esc</kbd>
+        </label>
+        <ul id="search-results" role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
+          {results.length === 0 && <li className="px-3 py-6 text-center text-[13px] text-muted">No matches</li>}
+          {results.map((r, i) => (
+            <li key={r.href} role="option" aria-selected={i === cursor}>
+              <button
+                type="button"
+                onMouseEnter={() => setCursor(i)}
+                onClick={() => go(r)}
+                className={cx("flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left", i === cursor ? "bg-panel-strong" : "")}
+              >
+                <span className="truncate text-[14px] font-medium">{r.label}</span>
+                <span className="shrink-0 text-[12px] text-muted">{r.sub}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }

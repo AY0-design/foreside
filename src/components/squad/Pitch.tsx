@@ -32,16 +32,16 @@ function lensValue(p: PlayerSummary, lens: Lens, captain: boolean): { text: stri
   }
 }
 
-function Token({ p, lens, captain, vice, onSelect }: { p: PlayerSummary; lens: Lens; captain: boolean; vice: boolean; onSelect: (id: number) => void }) {
+function Token({ p, lens, captain, vice, arrived, onSelect }: { p: PlayerSummary; lens: Lens; captain: boolean; vice: boolean; arrived: boolean; onSelect: (id: number) => void }) {
   const value = lensValue(p, lens, captain);
   return (
     <button
       type="button"
       onClick={() => onSelect(p.id)}
-      className="group flex max-w-[84px] min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-1"
+      className="press group flex max-w-[84px] min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-1"
       aria-label={`${p.name}, ${p.position}, ${pts(p.xPts)} expected points${captain ? ", captain" : vice ? ", vice-captain" : ""}${p.status !== "available" ? `, ${p.status}` : ""}. Why this pick`}
     >
-      <span className="relative transition-transform group-hover:-translate-y-0.5">
+      <span className={cx("relative transition-transform group-hover:-translate-y-0.5", arrived && "arrive")}>
         <PlayerAvatar photo={p.photo} badge={p.teamBadge} short={p.teamShort} name={p.webName} size={38} />
         {(captain || vice) && (
           <span className={cx("absolute -top-1 -left-1.5 grid size-4 place-items-center rounded-full text-[9px] font-bold ring-2 ring-panel", captain ? "bg-inverse text-inverse-fg" : "bg-bg text-fg")}>{captain ? "C" : "V"}</span>
@@ -56,12 +56,14 @@ function Token({ p, lens, captain, vice, onSelect }: { p: PlayerSummary; lens: L
 
 const ORDER: Position[] = ["GK", "DEF", "MID", "FWD"];
 
-export function Pitch({ starters, bench, captainId, viceId, lens, onSelect }: {
+export function Pitch({ starters, bench, captainId, viceId, lens, arrivedId = null, onSelect }: {
   starters: PlayerSummary[];
   bench: PlayerSummary[];
   captainId: number;
   viceId: number;
   lens: Lens;
+  /** The player who just came in via a transfer: fades in once on arrival. */
+  arrivedId?: number | null;
   onSelect: (id: number) => void;
 }) {
   return (
@@ -77,7 +79,7 @@ export function Pitch({ starters, bench, captainId, viceId, lens, onSelect }: {
               {starters
                 .filter((p) => p.position === pos)
                 .map((p) => (
-                  <Token key={p.id} p={p} lens={lens} captain={p.id === captainId} vice={p.id === viceId} onSelect={onSelect} />
+                  <Token key={p.id} p={p} lens={lens} captain={p.id === captainId} vice={p.id === viceId} arrived={p.id === arrivedId} onSelect={onSelect} />
                 ))}
             </div>
           ))}
@@ -86,7 +88,7 @@ export function Pitch({ starters, bench, captainId, viceId, lens, onSelect }: {
       <div className="mt-3 flex items-center justify-center gap-0.5 rounded-xl bg-bg py-2 sm:gap-2">
         <span className="px-2 text-[11px] font-medium text-muted">Bench</span>
         {bench.map((p) => (
-          <Token key={p.id} p={p} lens={lens} captain={false} vice={false} onSelect={onSelect} />
+          <Token key={p.id} p={p} lens={lens} captain={false} vice={false} arrived={p.id === arrivedId} onSelect={onSelect} />
         ))}
       </div>
     </div>

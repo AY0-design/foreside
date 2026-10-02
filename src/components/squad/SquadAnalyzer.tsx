@@ -111,6 +111,8 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
   const [inspecting, setInspecting] = useState<number | null>(null);
   const [replacing, setReplacing] = useState<number | null>(null);
   const [pending, setPending] = useState<PendingTransfer | null>(null);
+  // The player a confirmed transfer just brought in: their row and shirt get a one-off arrival cue.
+  const [arrivedId, setArrivedId] = useState<number | null>(null);
 
   useEffect(() => {
     save({ freeTransfers, custom });
@@ -146,11 +148,13 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
       delete nextOrigin[out.id];
       return { ids: applyTransfer(base.ids, out.id, inn.id), transfers: [...base.transfers, { outId: out.id, inId: inn.id }], origin: nextOrigin };
     });
+    setArrivedId(inn.id);
     setPending(null);
   };
 
   const reset = () => {
     setCustom(null);
+    setArrivedId(null);
     setDismissed(new Set());
   };
 
@@ -185,14 +189,14 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
                 </button>
               )}
             </div>
-            <Pitch starters={starters} bench={bench} captainId={analysis.lineup.captainId} viceId={analysis.lineup.viceId} lens={lens} onSelect={setInspecting} />
+            <Pitch starters={starters} bench={bench} captainId={analysis.lineup.captainId} viceId={analysis.lineup.viceId} lens={lens} arrivedId={arrivedId} onSelect={setInspecting} />
             <p className="mt-3 text-[12px] text-muted">Tap any player to see why they were picked.</p>
           </Panel>
           <Panel className="flex-1">
             <PanelHeader title="Readiness" actions={<Delta tone={analysis.readiness === 3 ? "green" : analysis.readiness === 0 ? "red" : "orange"}>{READINESS[analysis.readiness]}</Delta>} />
             <div className="grid grid-cols-4 gap-1" role="meter" aria-valuemin={0} aria-valuemax={3} aria-valuenow={analysis.readiness} aria-valuetext={READINESS[analysis.readiness]} aria-label="Squad readiness">
               {READINESS.map((label, i) => (
-                <div key={label} className={cx("h-1 rounded-full", i <= analysis.readiness ? (analysis.readiness === 3 ? "bg-green" : analysis.readiness === 0 ? "bg-red" : "bg-orange") : "bg-panel-strong")} />
+                <div key={label} className={cx("h-1 rounded-full transition-[background-color] duration-200 ease-[ease]", i <= analysis.readiness ? (analysis.readiness === 3 ? "bg-green" : analysis.readiness === 0 ? "bg-red" : "bg-orange") : "bg-panel-strong")} />
               ))}
             </div>
             <ul className="mt-4 space-y-3">
@@ -272,7 +276,7 @@ function SquadAnalyzerClient({ players }: { players: PlayerSummary[] }) {
                     .map((p) => {
                       const r = role(p.id);
                       return (
-                        <tr key={p.id} className={cx(ROW, "cursor-pointer")} onClick={() => setInspecting(p.id)}>
+                        <tr key={p.id} className={cx(ROW, "cursor-pointer", p.id === arrivedId && "arrived")} onClick={() => setInspecting(p.id)}>
                           <td className={TD}>
                             <button type="button" onClick={() => setInspecting(p.id)} className="flex items-center gap-2.5 text-left">
                               <PlayerAvatar photo={p.photo} badge={p.teamBadge} short={p.teamShort} name={p.webName} size={24} />

@@ -2,6 +2,11 @@
 
 /* Colour: Family (dark palette only). Structure: Fey. See docs/design-system.md. */
 :root {
+  /* Motion. Strong curves (Emil Kowalski's set): the built-in CSS easings are too weak for UI. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --bg: #000000;
   --panel: #1c1c1e;
   --panel-strong: #2c2c2e;
@@ -105,11 +110,68 @@ body {
     var(--panel);
 }
 
+/*
+ * Motion, kept deliberately small. Only three things move:
+ *  - .press: pressables shrink a touch while held, so the tap is felt (160ms, transform only).
+ *  - .arrive: a player who just came in via a transfer fades in on the pitch.
+ *  - .arrived: their squad row carries a brief highlight that fades away.
+ * Content swaps (tabs, lenses, horizons) stay instant on purpose.
+ */
+@layer utilities {
+  .press {
+    transition-property: color, background-color, opacity, transform;
+    transition-duration: 160ms;
+    transition-timing-function: var(--ease-out);
+  }
+  .press:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+.arrive {
+  animation: arrive 260ms var(--ease-out);
+}
+
+@keyframes arrived {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.arrived {
+  position: relative;
+}
+.arrived::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--blue-soft);
+  opacity: 0;
+  animation: arrived 1100ms var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  /* Fewer and gentler, not zero: drop movement, keep the cue that says what changed. */
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+  .arrived::after {
+    animation-duration: 1100ms !important;
   }
 }

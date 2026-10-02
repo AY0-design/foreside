@@ -150,7 +150,7 @@ const BUTTON: Record<ButtonTone, string> = {
 };
 const buttonClass = (tone: ButtonTone, size: "sm" | "md" | "lg") =>
   cx(
-    "inline-flex items-center justify-center gap-1.5 rounded-full font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-40",
+    "press inline-flex items-center justify-center gap-1.5 rounded-full font-medium whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40",
     size === "sm" ? "h-7 px-3 text-[13px]" : size === "md" ? "h-9 px-4 text-[14px]" : "h-11 px-5 text-[15px]",
     BUTTON[tone],
   );

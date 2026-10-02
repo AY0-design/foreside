@@ -31,7 +31,7 @@ export function Dock() {
                   aria-label={label}
                   title={label}
                   aria-current={active ? "page" : undefined}
-                  className={cx("grid size-9 place-items-center rounded-full transition-colors", active ? "bg-white/15 text-white" : "text-white/55 hover:bg-white/10 hover:text-white")}
+                  className={cx("press grid size-9 place-items-center rounded-full", active ? "bg-white/15 text-white" : "text-white/55 hover:bg-white/10 hover:text-white")}
                 >
                   <Icon size={17} strokeWidth={2} />
                 </Link>
@@ -45,7 +45,7 @@ export function Dock() {
         onClick={open}
         aria-label="Search players, teams and pages (⌘K)"
         title="Search (⌘K)"
-        className="grid size-12 place-items-center rounded-full bg-[#1c1c1e] text-white/70 shadow-pop ring-1 ring-white/10 transition-colors hover:text-white"
+        className="press grid size-12 place-items-center rounded-full bg-[#1c1c1e] text-white/70 shadow-pop ring-1 ring-white/10 hover:text-white"
       >
         <Search size={17} />
       </button>
