@@ -55,7 +55,7 @@ export default async function FixturePage({ params }: PageProps<"/fixtures/[id]"
           {home.name} {f.result ? `${f.result.home}–${f.result.away}` : "v"} {away.name}
         </h1>
         <p className="text-[14px] text-muted">{f.result ? `Played in gameweek ${f.gw}.` : `Gameweek ${f.gw} is outside the projection window.`} Match intelligence covers the next five gameweeks.</p>
-        <Link href="/fixtures" className="text-[14px] font-medium hover:underline">Back to fixtures</Link>
+        <Link href={`/fixtures?gw=${f.gw}`} className="text-[14px] font-medium hover:underline">Back to fixtures</Link>
       </div>
     );
   }

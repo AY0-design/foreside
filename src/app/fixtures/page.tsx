@@ -13,13 +13,32 @@ export const metadata: Metadata = { title: "Fixtures" };
 export default async function FixturesPage({ searchParams }: PageProps<"/fixtures">) {
   const model = await getModel();
   const requested = Number((await searchParams).gw);
-  const gws = Array.from({ length: HORIZON }, (_, i) => model.currentGw + i);
+  // Every gameweek played so far, then the projection window.
+  const last = model.currentGw + HORIZON - 1;
+  const gws = Array.from({ length: last }, (_, i) => i + 1);
   const gw = gws.includes(requested) ? requested : model.currentGw;
+  const past = gw < model.currentGw;
   const teamById = new Map(model.teams.map((t) => [t.id, t]));
   const summaries = new Map(summarize(model).map((s) => [s.id, s]));
   const fixtures = model.fixtures.filter((f) => f.gw === gw);
   const proj = (fixtureId: number, teamId: number) => model.teamProjections.find((t) => t.fixtureId === fixtureId && t.teamId === teamId)!;
   const sentiment = gameweekSentiment(model, gw);
+  const scored = fixtures.filter((f) => f.result);
+  const actualGoals = scored.length ? scored.reduce((s, f) => s + f.result!.home + f.result!.away, 0) / scored.length : 0;
+  const goalsPerMatch = past ? actualGoals : sentiment.goalsPerMatch;
+  const word = goalsPerMatch >= 3.0 ? "attacking" : goalsPerMatch <= 2.6 ? "tight" : "balanced";
+
+  // Highest FPL scorer in a played match, from each player's gameweek history.
+  const topScorer = (f: (typeof fixtures)[number]) => {
+    let best: { id: number; points: number } | null = null;
+    for (const p of model.players) {
+      const opponentId = p.teamId === f.homeId ? f.awayId : p.teamId === f.awayId ? f.homeId : null;
+      if (opponentId === null) continue;
+      const h = p.history.find((x) => x.gw === f.gw && x.opponentId === opponentId);
+      if (h && (!best || h.points > best.points)) best = { id: p.id, points: h.points };
+    }
+    return best;
+  };
 
   const bestPlayer = (fixtureId: number) => {
     let best: { id: number; xPts: number } | null = null;
@@ -39,8 +58,8 @@ export default async function FixturesPage({ searchParams }: PageProps<"/fixture
 
   return (
     <div className="space-y-6">
-      <PageBar title="Fixtures" sub={`${fixtures.length} matches · ${sentiment.goalsPerMatch.toFixed(2)} goals per match projected`} actions={<TabLinks active={`/fixtures?gw=${gw}`} items={gws.map((g) => ({ href: `/fixtures?gw=${g}`, label: `GW${g}` }))} />} />
-      <Headline lead={`Gameweek ${gw} looks`} emphasis={sentiment.word} tone={sentiment.word === "attacking" ? "green" : sentiment.word === "tight" ? "red" : "fg"} />
+      <PageBar title="Fixtures" sub={`${fixtures.length} matches · ${goalsPerMatch.toFixed(2)} goals per match ${past ? "scored" : "projected"}`} actions={<TabLinks active={`/fixtures?gw=${gw}`} items={gws.map((g) => ({ href: `/fixtures?gw=${g}`, label: `GW${g}` }))} />} />
+      <Headline lead={`Gameweek ${gw} ${past ? "played out" : "looks"}`} emphasis={word} tone={word === "attacking" ? "green" : word === "tight" ? "red" : "fg"} />
 
       {fixtures.length === 0 ? (
         <p className="text-[14px] text-muted">No fixtures scheduled in GW{gw}.</p>
@@ -52,20 +71,20 @@ export default async function FixturesPage({ searchParams }: PageProps<"/fixture
                 <tr>
                   <th scope="col" className={TH}>Kick-off</th>
                   <th scope="col" className={TH}>Match</th>
-                  <th scope="col" className={cx(TH, "text-center")}>Projected</th>
-                  <th scope="col" className={cx(TH, "text-right")}>Clean sheet</th>
-                  <th scope="col" className={TH}>Best pick</th>
+                  <th scope="col" className={cx(TH, "text-center")}>{past ? "Result" : "Projected"}</th>
+                  {!past && <th scope="col" className={cx(TH, "text-right")}>Clean sheet</th>}
+                  <th scope="col" className={TH}>{past ? "Top scorer" : "Best pick"}</th>
                 </tr>
               </thead>
               <tbody>
                 {[...days.entries()].map(([day, list]) => [
-                  <GroupRow key={day} label={day} span={5} />,
+                  <GroupRow key={day} label={day} span={past ? 4 : 5} />,
                   ...list.map((f) => {
                     const home = teamById.get(f.homeId)!;
                     const away = teamById.get(f.awayId)!;
-                    const hp = proj(f.id, home.id);
-                    const ap = proj(f.id, away.id);
-                    const best = bestPlayer(f.id);
+                    const hp = past ? null : proj(f.id, home.id);
+                    const ap = past ? null : proj(f.id, away.id);
+                    const best = past ? topScorer(f) : bestPlayer(f.id);
                     const bp = best ? summaries.get(best.id)! : null;
                     return (
                       <tr key={f.id} className={ROW}>
@@ -80,17 +99,31 @@ export default async function FixturesPage({ searchParams }: PageProps<"/fixture
                           </Link>
                         </td>
                         <td className={cx(TD, "text-center font-semibold tnum")}>
-                          <span className="text-blue">{hp.xG.toFixed(1)}</span>
-                          <span className="mx-1 text-faint">–</span>
-                          <span className="text-pink">{ap.xG.toFixed(1)}</span>
+                          {hp && ap ? (
+                            <>
+                              <span className="text-blue">{hp.xG.toFixed(1)}</span>
+                              <span className="mx-1 text-faint">–</span>
+                              <span className="text-pink">{ap.xG.toFixed(1)}</span>
+                            </>
+                          ) : f.result ? (
+                            <>
+                              {f.result.home}
+                              <span className="mx-1 text-faint">–</span>
+                              {f.result.away}
+                            </>
+                          ) : (
+                            <span className="text-faint">—</span>
+                          )}
                         </td>
-                        <td className={cx(TD, "text-right")}>
-                          <span className="inline-flex gap-1">
-                            <Delta tone={hp.pCleanSheet >= 0.4 ? "green" : "neutral"}>{home.short} {pct(hp.pCleanSheet)}</Delta>
-                            <Delta tone={ap.pCleanSheet >= 0.4 ? "green" : "neutral"}>{away.short} {pct(ap.pCleanSheet)}</Delta>
-                          </span>
-                        </td>
-                        <td className={TD}>{bp && best ? <PlayerIdentity p={bp} size={22} sub={`${pts(best.xPts)} xPts`} /> : "—"}</td>
+                        {hp && ap && (
+                          <td className={cx(TD, "text-right")}>
+                            <span className="inline-flex gap-1">
+                              <Delta tone={hp.pCleanSheet >= 0.4 ? "green" : "neutral"}>{home.short} {pct(hp.pCleanSheet)}</Delta>
+                              <Delta tone={ap.pCleanSheet >= 0.4 ? "green" : "neutral"}>{away.short} {pct(ap.pCleanSheet)}</Delta>
+                            </span>
+                          </td>
+                        )}
+                        <td className={TD}>{bp && best ? <PlayerIdentity p={bp} size={22} sub={"xPts" in best ? `${pts(best.xPts)} xPts` : `${best.points} pts`} /> : "—"}</td>
                       </tr>
                     );
                   }),

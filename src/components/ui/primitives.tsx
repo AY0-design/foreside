@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Confidence, Status } from "@/lib/types";
 import { cx, pct } from "@/lib/format";
 import { Headshot } from "./Headshot";
+import { ActiveTabScroll } from "./ActiveTabScroll";
 
 // ─────────────────────────── Page structure (Fey) ───────────────────────────
 
@@ -170,7 +171,8 @@ export function PillLink({ tone = "primary", size = "md", className, href, child
 /** Fey header tab as a link (e.g. "Holdings · Watchlist"). */
 export function TabLinks({ items, active }: { items: { href: string; label: ReactNode; icon?: LucideIcon }[]; active: string }) {
   return (
-    <nav className="no-scrollbar flex gap-1 overflow-x-auto">
+    <nav className="no-scrollbar relative flex max-w-full gap-1 overflow-x-auto">
+      <ActiveTabScroll />
       {items.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
