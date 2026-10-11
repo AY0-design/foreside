@@ -7,9 +7,10 @@ import { describeZone } from "@/lib/engine/explain";
 import { fixturesFor, HORIZON } from "@/lib/engine/project";
 import { LANES, zoneRatio } from "@/lib/engine/zones";
 import type { Position } from "@/lib/types";
+import { GameweekSelect } from "@/components/ui/GameweekSelect";
 import { MiniZone } from "@/components/MiniZone";
 import { PlayerIdentity } from "@/components/PlayerBits";
-import { Delta, GroupRow, PageBar, Panel, PanelHeader, ROW, TabLinks, TD, TeamBadge, TH } from "@/components/ui/primitives";
+import { Delta, GroupRow, PageBar, Panel, PanelHeader, ROW, TD, TeamBadge, TH } from "@/components/ui/primitives";
 import { capitalize, cx, pct, pts } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Matchups" };
@@ -41,7 +42,7 @@ export default async function MatchupsPage({ searchParams }: PageProps<"/matchup
       <PageBar
         title="Matchups"
         sub="Opponent weakness × player footprint, from real shot locations"
-        actions={<TabLinks active={`/matchups?gw=${gw}`} items={gws.map((g) => ({ href: `/matchups?gw=${g}`, label: `GW${g}` }))} />}
+        actions={<GameweekSelect path="/matchups" gw={gw} currentGw={model.currentGw} first={model.currentGw} last={gws[gws.length - 1]} />}
       />
 
       {/* Two panels, one table rhythm: same header rows, row height and team order, so each

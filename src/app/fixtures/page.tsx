@@ -4,8 +4,9 @@ import { getModel } from "@/lib/data/source";
 import { summarize, teamBadge } from "@/lib/data/summaries";
 import { gameweekSentiment } from "@/lib/engine/brief";
 import { HORIZON } from "@/lib/engine/project";
+import { GameweekSelect } from "@/components/ui/GameweekSelect";
 import { PlayerIdentity } from "@/components/PlayerBits";
-import { Delta, GroupRow, Headline, PageBar, Panel, ROW, TabLinks, TD, TeamBadge, TH } from "@/components/ui/primitives";
+import { Delta, GroupRow, Headline, PageBar, Panel, ROW, TD, TeamBadge, TH } from "@/components/ui/primitives";
 import { cx, pct, pts } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Fixtures" };
@@ -58,7 +59,7 @@ export default async function FixturesPage({ searchParams }: PageProps<"/fixture
 
   return (
     <div className="space-y-6">
-      <PageBar title="Fixtures" sub={`${fixtures.length} matches · ${goalsPerMatch.toFixed(2)} goals per match ${past ? "scored" : "projected"}`} actions={<TabLinks active={`/fixtures?gw=${gw}`} items={gws.map((g) => ({ href: `/fixtures?gw=${g}`, label: `GW${g}` }))} />} />
+      <PageBar title="Fixtures" sub={`${fixtures.length} matches · ${goalsPerMatch.toFixed(2)} goals per match ${past ? "scored" : "projected"}`} actions={<GameweekSelect path="/fixtures" gw={gw} currentGw={model.currentGw} first={1} last={last} />} />
       <Headline lead={`Gameweek ${gw} ${past ? "played out" : "looks"}`} emphasis={word} tone={word === "attacking" ? "green" : word === "tight" ? "red" : "fg"} />
 
       {fixtures.length === 0 ? (

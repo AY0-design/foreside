@@ -45,16 +45,20 @@ jobs:
       # starters, plausible projections. A bad sync stops here and is never committed.
       - run: npx vitest run
 
+      # Save what we recommend for the open gameweek, so it can be checked against what happens.
+      # Refreshed daily until the deadline, then frozen. See scripts/record-picks.ts.
+      - run: npm run record
+
       - name: Commit the new snapshot
         id: commit
         run: |
-          if git diff --quiet -- data/snapshot.json; then
+          git add data/snapshot.json data/recommendations
+          if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/snapshot.json
           git commit -m "Sync data $(date -u +%Y-%m-%dT%H:%MZ)"
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"

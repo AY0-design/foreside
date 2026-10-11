@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync": "node scripts/sync-data.ts",
+    "record": "node scripts/record-picks.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "eslint-config-next": "16.3.7",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.3.4",
     "vitest": "^5.0.2"
   }
 }
